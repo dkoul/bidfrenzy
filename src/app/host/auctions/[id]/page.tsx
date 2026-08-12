@@ -14,6 +14,7 @@ export default function ManageAuctionPage() {
   const [auction, setAuction] = useState<Auction | null>(null);
   const [items, setItems] = useState<AuctionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function refresh() {
@@ -46,12 +47,14 @@ export default function ManageAuctionPage() {
     if (!auction) return;
     setSaving(true);
     setError(null);
+    setSuccess(null);
     const form = new FormData(e.currentTarget);
+    const itemName = String(form.get("name") || "").trim();
     const supabase = createClient();
     const position = items.length;
     const { error: err } = await supabase.from("auction_items").insert({
       auction_id: auction.id,
-      name: String(form.get("name") || "").trim(),
+      name: itemName,
       description: String(form.get("description") || "").trim() || null,
       starting_price: Number(form.get("starting") || auction.default_starting_bid),
       minimum_increment: Number(form.get("increment") || auction.default_bid_increment),
@@ -65,6 +68,7 @@ export default function ManageAuctionPage() {
       return;
     }
     e.currentTarget.reset();
+    setSuccess(`“${itemName}” added to the auction.`);
     await refresh();
   }
 
@@ -80,9 +84,44 @@ export default function ManageAuctionPage() {
     else router.push(`/host/auctions/${auction.id}/lobby`);
   }
 
-  async function deleteItem(id: string) {
+  async function deleteItem(item: AuctionItem) {
+    if (!auction) return;
+    if (item.status !== "pending") {
+      setError("Only pending items can be deleted.");
+      setSuccess(null);
+      return;
+    }
+    if (auction.current_item_id === item.id) {
+      setError("Close or finish the current item before deleting it.");
+      setSuccess(null);
+      return;
+    }
+    const confirmed = window.confirm(`Delete “${item.name}”?`);
+    if (!confirmed) return;
+
+    setError(null);
+    setSuccess(null);
     const supabase = createClient();
-    await supabase.from("auction_items").delete().eq("id", id);
+    const { error: err } = await supabase.from("auction_items").delete().eq("id", item.id);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+
+    // Keep item numbers contiguous after delete
+    const remaining = items
+      .filter((i) => i.id !== item.id)
+      .sort((a, b) => a.position - b.position);
+    await Promise.all(
+      remaining.map((i, index) =>
+        supabase
+          .from("auction_items")
+          .update({ position: index, item_number: index + 1 })
+          .eq("id", i.id),
+      ),
+    );
+
+    setSuccess(`“${item.name}” deleted.`);
     await refresh();
   }
 
@@ -122,6 +161,20 @@ export default function ManageAuctionPage() {
       </p>
       {joinUrl ? (
         <p className="mt-1 text-sm text-ink-soft/60">Join URL: {joinUrl}</p>
+      ) : null}
+
+      {error ? (
+        <p className="mt-4 rounded-xl bg-signal/10 px-3 py-2 text-sm font-semibold text-signal-deep">
+          {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p
+          role="status"
+          className="mt-4 rounded-xl bg-mint/15 px-3 py-2 text-sm font-semibold text-mint"
+        >
+          {success}
+        </p>
       ) : null}
 
       <section className="bf-panel mt-8 rounded-[1.5rem] p-6">
@@ -175,7 +228,6 @@ export default function ManageAuctionPage() {
               />
             </div>
           </div>
-          {error ? <p className="text-sm text-signal-deep">{error}</p> : null}
           <button type="submit" className="bf-btn bf-btn-dark w-fit" disabled={saving}>
             {saving ? "Adding…" : "Add item"}
           </button>
@@ -184,25 +236,39 @@ export default function ManageAuctionPage() {
 
       <section className="mt-8">
         <h2 className="font-display text-2xl">Items ({items.length})</h2>
+        {!items.length ? (
+          <p className="mt-4 text-sm text-ink-soft/60">No items yet. Add one above.</p>
+        ) : null}
         <div className="mt-4 grid gap-3">
-          {items.map((item) => (
-            <div key={item.id} className="bf-panel flex items-start justify-between gap-4 rounded-2xl p-4">
-              <div>
-                <p className="font-bold">
-                  #{item.item_number ?? item.position + 1} {item.name}
-                </p>
-                <p className="text-sm text-ink-soft/70">
-                  Start {formatMoney(item.starting_price, auction.currency)} · +
-                  {formatMoney(item.minimum_increment, auction.currency)} · {item.status}
-                </p>
+          {items.map((item) => {
+            const canDelete =
+              item.status === "pending" && auction.current_item_id !== item.id;
+            return (
+              <div
+                key={item.id}
+                className="bf-panel flex items-start justify-between gap-4 rounded-2xl p-4"
+              >
+                <div>
+                  <p className="font-bold">
+                    #{item.item_number ?? item.position + 1} {item.name}
+                  </p>
+                  <p className="text-sm text-ink-soft/70">
+                    Start {formatMoney(item.starting_price, auction.currency)} · +
+                    {formatMoney(item.minimum_increment, auction.currency)} · {item.status}
+                  </p>
+                </div>
+                {canDelete ? (
+                  <button
+                    type="button"
+                    className="bf-btn shrink-0 border border-signal/30 bg-signal/10 text-signal-deep"
+                    onClick={() => void deleteItem(item)}
+                  >
+                    Delete
+                  </button>
+                ) : null}
               </div>
-              {auction.status === "draft" ? (
-                <button type="button" className="bf-btn bf-btn-ghost" onClick={() => void deleteItem(item.id)}>
-                  Remove
-                </button>
-              ) : null}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
