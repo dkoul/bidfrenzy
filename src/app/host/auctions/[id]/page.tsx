@@ -14,6 +14,7 @@ export default function ManageAuctionPage() {
   const [auction, setAuction] = useState<Auction | null>(null);
   const [items, setItems] = useState<AuctionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function refresh() {
@@ -46,12 +47,14 @@ export default function ManageAuctionPage() {
     if (!auction) return;
     setSaving(true);
     setError(null);
+    setSuccess(null);
     const form = new FormData(e.currentTarget);
+    const itemName = String(form.get("name") || "").trim();
     const supabase = createClient();
     const position = items.length;
     const { error: err } = await supabase.from("auction_items").insert({
       auction_id: auction.id,
-      name: String(form.get("name") || "").trim(),
+      name: itemName,
       description: String(form.get("description") || "").trim() || null,
       starting_price: Number(form.get("starting") || auction.default_starting_bid),
       minimum_increment: Number(form.get("increment") || auction.default_bid_increment),
@@ -65,6 +68,7 @@ export default function ManageAuctionPage() {
       return;
     }
     e.currentTarget.reset();
+    setSuccess(`“${itemName}” added to the auction.`);
     await refresh();
   }
 
@@ -176,6 +180,14 @@ export default function ManageAuctionPage() {
             </div>
           </div>
           {error ? <p className="text-sm text-signal-deep">{error}</p> : null}
+          {success ? (
+            <p
+              role="status"
+              className="rounded-xl bg-mint/15 px-3 py-2 text-sm font-semibold text-mint"
+            >
+              {success}
+            </p>
+          ) : null}
           <button type="submit" className="bf-btn bf-btn-dark w-fit" disabled={saving}>
             {saving ? "Adding…" : "Add item"}
           </button>
