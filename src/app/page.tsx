@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useUser } from "@/hooks/useUser";
 
 export default function HomePage() {
   const [mounted, setMounted] = useState(false);
+  const { user } = useUser();
   useEffect(() => setMounted(true), []);
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
+    <main className="relative min-h-screen overflow-hidden pt-24">
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,77,46,0.22),transparent_35%),radial-gradient(circle_at_80%_10%,rgba(240,180,41,0.18),transparent_30%),linear-gradient(135deg,#101820_0%,#1c2a3a_55%,#0f171f_100%)]" />
         <div
@@ -20,18 +22,6 @@ export default function HomePage() {
           }}
         />
       </div>
-
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6 text-white">
-        <div className="font-display text-2xl tracking-tight">BidFrenzy</div>
-        <div className="flex items-center gap-3">
-          <Link href="/join" className="bf-btn bf-btn-ghost border-white/20 text-white">
-            Join room
-          </Link>
-          <Link href="/host/login" className="bf-btn bf-btn-primary">
-            Host login
-          </Link>
-        </div>
-      </header>
 
       <section className="mx-auto grid min-h-[78vh] w-full max-w-6xl items-center gap-10 px-6 pb-16 pt-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
@@ -66,7 +56,10 @@ export default function HomePage() {
             transition={{ duration: 0.55, delay: 0.18 }}
             className="mt-8 flex flex-wrap gap-3"
           >
-            <Link href="/host/login" className="bf-btn bf-btn-primary text-base">
+            <Link
+              href={user ? "/host/auctions/new" : "/host/login"}
+              className="bf-btn bf-btn-primary text-base"
+            >
               Create an auction
             </Link>
             <Link

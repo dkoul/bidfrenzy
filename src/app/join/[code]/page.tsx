@@ -207,7 +207,7 @@ export default function JoinRoomPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col px-6 py-8">
       <div className="flex items-center justify-between">
-        <p className="font-display text-xl">BidFrenzy</p>
+        <p className="text-sm font-semibold text-ink-soft/60">Room {auction.code}</p>
         <p className="text-sm font-semibold text-ink-soft/60">{participant.display_name}</p>
       </div>
 

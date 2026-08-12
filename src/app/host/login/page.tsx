@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function HostLoginPage() {
@@ -27,9 +26,6 @@ export default function HostLoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center px-6 py-16">
-      <Link href="/" className="mb-10 font-display text-3xl text-ink">
-        BidFrenzy
-      </Link>
       <div className="bf-panel rounded-[1.75rem] p-8 shadow-sm">
         <h1 className="font-display text-3xl">Host login</h1>
         <p className="mt-2 text-ink-soft/80">

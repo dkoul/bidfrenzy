@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SignOutButton } from "@/components/SignOutButton";
 import { formatMoney } from "@/lib/format";
 
 export default async function HostDashboardPage() {
@@ -21,17 +20,12 @@ export default async function HostDashboardPage() {
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-10">
       <header className="mb-10 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <Link href="/" className="font-display text-3xl">
-            BidFrenzy
-          </Link>
-          <p className="mt-1 text-sm text-ink-soft/70">Host dashboard</p>
+          <h1 className="font-display text-3xl">Host dashboard</h1>
+          <p className="mt-1 text-sm text-ink-soft/70">Your live bidding rooms</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/host/auctions/new" className="bf-btn bf-btn-primary">
-            New auction
-          </Link>
-          <SignOutButton />
-        </div>
+        <Link href="/host/auctions/new" className="bf-btn bf-btn-primary">
+          New auction
+        </Link>
       </header>
 
       {!auctions?.length ? (

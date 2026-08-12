@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -11,13 +11,15 @@ export default function ManageAuctionPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const auctionId = params.id;
+  const formRef = useRef<HTMLFormElement>(null);
   const [auction, setAuction] = useState<Auction | null>(null);
   const [items, setItems] = useState<AuctionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const supabase = createClient();
     const [{ data: a, error: ae }, { data: i, error: ie }] = await Promise.all([
       supabase.from("auctions").select("*").eq("id", auctionId).single(),
@@ -27,15 +29,21 @@ export default function ManageAuctionPage() {
         .eq("auction_id", auctionId)
         .order("position", { ascending: true }),
     ]);
-    if (ae) setError(ae.message);
+    if (ae) {
+      setError(ae.message);
+      setLoading(false);
+      return;
+    }
     if (ie) setError(ie.message);
+    else setError(null);
     setAuction(a as Auction | null);
     setItems((i as AuctionItem[]) ?? []);
-  }
+    setLoading(false);
+  }, [auctionId]);
 
   useEffect(() => {
     void refresh();
-  }, [auctionId]);
+  }, [refresh]);
 
   const joinUrl = useMemo(() => {
     if (!auction || typeof window === "undefined") return "";
@@ -48,28 +56,54 @@ export default function ManageAuctionPage() {
     setSaving(true);
     setError(null);
     setSuccess(null);
-    const form = new FormData(e.currentTarget);
-    const itemName = String(form.get("name") || "").trim();
-    const supabase = createClient();
-    const position = items.length;
-    const { error: err } = await supabase.from("auction_items").insert({
-      auction_id: auction.id,
-      name: itemName,
-      description: String(form.get("description") || "").trim() || null,
-      starting_price: Number(form.get("starting") || auction.default_starting_bid),
-      minimum_increment: Number(form.get("increment") || auction.default_bid_increment),
-      position,
-      item_number: position + 1,
-      image_url: String(form.get("image_url") || "").trim() || null,
-    });
-    setSaving(false);
-    if (err) {
-      setError(err.message);
+
+    const form = formRef.current ?? e.currentTarget;
+    const formData = new FormData(form);
+    const itemName = String(formData.get("name") || "").trim();
+    if (!itemName) {
+      setError("Item name is required.");
+      setSaving(false);
       return;
     }
-    e.currentTarget.reset();
+
+    const startingPrice = Number(formData.get("starting") || auction.default_starting_bid);
+    const minimumIncrement = Number(formData.get("increment") || auction.default_bid_increment);
+    const description = String(formData.get("description") || "").trim() || null;
+    const imageUrl = String(formData.get("image_url") || "").trim() || null;
+    const position = items.length;
+
+    const supabase = createClient();
+    const { data, error: err } = await supabase
+      .from("auction_items")
+      .insert({
+        auction_id: auction.id,
+        name: itemName,
+        description,
+        starting_price: startingPrice,
+        minimum_increment: minimumIncrement,
+        position,
+        item_number: position + 1,
+        image_url: imageUrl,
+      })
+      .select("*")
+      .single();
+
+    setSaving(false);
+
+    if (err || !data) {
+      setError(err?.message ?? "Could not add item. Check that you are signed in as the host.");
+      return;
+    }
+
+    const created = data as AuctionItem;
+    setItems((prev) => [...prev, created]);
     setSuccess(`“${itemName}” added to the auction.`);
-    await refresh();
+    form.reset();
+
+    // Keep server state in sync; don't clear the success toast on refresh.
+    void refresh().then(() => {
+      setSuccess(`“${itemName}” added to the auction.`);
+    });
   }
 
   async function makeReady() {
@@ -108,10 +142,18 @@ export default function ManageAuctionPage() {
       return;
     }
 
-    // Keep item numbers contiguous after delete
     const remaining = items
       .filter((i) => i.id !== item.id)
       .sort((a, b) => a.position - b.position);
+    setItems(
+      remaining.map((i, index) => ({
+        ...i,
+        position: index,
+        item_number: index + 1,
+      })),
+    );
+    setSuccess(`“${item.name}” deleted.`);
+
     await Promise.all(
       remaining.map((i, index) =>
         supabase
@@ -120,15 +162,22 @@ export default function ManageAuctionPage() {
           .eq("id", i.id),
       ),
     );
-
-    setSuccess(`“${item.name}” deleted.`);
     await refresh();
+    setSuccess(`“${item.name}” deleted.`);
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl px-6 py-16">
+        <p>Loading auction…</p>
+      </main>
+    );
   }
 
   if (!auction) {
     return (
       <main className="mx-auto max-w-3xl px-6 py-16">
-        <p>{error ?? "Loading auction…"}</p>
+        <p>{error ?? "Auction not found"}</p>
       </main>
     );
   }
@@ -171,6 +220,7 @@ export default function ManageAuctionPage() {
       {success ? (
         <p
           role="status"
+          aria-live="polite"
           className="mt-4 rounded-xl bg-mint/15 px-3 py-2 text-sm font-semibold text-mint"
         >
           {success}
@@ -179,7 +229,7 @@ export default function ManageAuctionPage() {
 
       <section className="bf-panel mt-8 rounded-[1.5rem] p-6">
         <h2 className="font-display text-2xl">Add item</h2>
-        <form onSubmit={addItem} className="mt-4 grid gap-4">
+        <form ref={formRef} onSubmit={addItem} className="mt-4 grid gap-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="bf-label" htmlFor="name">
