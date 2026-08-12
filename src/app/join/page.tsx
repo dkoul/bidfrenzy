@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function JoinIndexPage() {
@@ -17,10 +16,7 @@ export default function JoinIndexPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-6 py-12">
-      <Link href="/" className="font-display text-3xl">
-        BidFrenzy
-      </Link>
-      <h1 className="mt-8 font-display text-4xl">Join a room</h1>
+      <h1 className="font-display text-4xl">Join a room</h1>
       <p className="mt-2 text-ink-soft/75">Enter the code on the big screen.</p>
       <form onSubmit={onSubmit} className="bf-panel mt-8 rounded-[1.5rem] p-6">
         <label className="bf-label" htmlFor="code">

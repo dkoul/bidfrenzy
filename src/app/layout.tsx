@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Figtree, Syne } from "next/font/google";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 const display = Syne({
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} h-full`}>
-      <body className="min-h-full flex flex-col antialiased bf-shell">{children}</body>
+      <body className="min-h-full flex flex-col antialiased bf-shell">
+        <SiteHeader />
+        {children}
+      </body>
     </html>
   );
 }
