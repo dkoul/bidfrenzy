@@ -1,60 +1,39 @@
 # BidFrenzy
 
-Mentimeter for live bidding. Hosts create auction rooms; participants join with a short code or QR and bid from their phones in real time.
+**Experience romance of the auction.**
 
-## Stack
+BidFrenzy is Mentimeter for live bidding — built for the room, not the marketplace. An auctioneer opens a live room, flashes a QR code, and the crowd joins from their phones. No apps. No accounts for bidders. Just a name, a tap, and the rush of competing in real time.
 
-- Next.js (App Router) + React
-- Supabase Auth (Google OAuth for hosts)
-- Supabase Postgres + RLS + RPCs (`place_bid`, etc.)
-- Supabase Realtime
-- Vercel-ready frontend
+## The feeling
 
-## Setup
+Traditional event auctions drown in paddles, shouting, and spreadsheets. Online auctions feel cold and transactional. BidFrenzy sits in between: a shared live moment where everyone sees the same current bid, feels the outbid sting, and watches a giant **SOLD** land on the big screen.
 
-1. Copy env vars:
+It should feel fast, social, competitive, and a little dramatic.
 
-```bash
-cp .env.example .env.local
-```
+## Who it’s for
 
-2. Set your Supabase project values (Project Settings → API):
+- **Hosts** — fundraisers, schools, clubs, weddings, corporate events, conferences, charity galas
+- **Bidders** — anyone in the room with a phone
 
-- `NEXT_PUBLIC_SUPABASE_URL=https://fwprwkkmaqenslyexwvg.supabase.co`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`
-- `SUPABASE_SERVICE_ROLE_KEY=...` (for applying migrations / admin scripts)
+## How it works
 
-3. Apply the schema in the Supabase SQL editor:
+1. Host signs in and creates an auction
+2. Add items, then open the lobby with a short code + QR
+3. Guests scan, enter a name, and wait in the room
+4. Host opens an item — phones light up with one-tap bidding
+5. Close bidding, crown a winner, mark **SOLD**, move to the next lot
+6. End the night with a full auction summary
 
-- Run [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql)
+## What’s live in the MVP
 
-4. Enable Google Auth in Supabase:
+- Host Google login and auction dashboard
+- Item management with starting prices and increments
+- Guest join via room code or QR (no bidder accounts)
+- Server-authoritative live bidding with realtime updates
+- Outbid feedback and one-tap next bid
+- Big-screen display for lobby, live bids, and SOLD moments
+- Final results: winners, totals, sold vs unsold
 
-- Authentication → Providers → Google
-- Add redirect URL: `http://localhost:3000/auth/callback` (and your production URL)
+## Try it
 
-5. Install and run:
-
-```bash
-npm install
-npm run dev
-```
-
-## Routes
-
-| Route | Purpose |
-| --- | --- |
-| `/` | Landing |
-| `/host/login` | Google OAuth for hosts |
-| `/host` | Host dashboard |
-| `/host/auctions/new` | Create auction |
-| `/host/auctions/[id]` | Manage items |
-| `/host/auctions/[id]/lobby` | QR + join code |
-| `/host/auctions/[id]/live` | Live auction controls |
-| `/host/auctions/[id]/summary` | Results |
-| `/join` / `/join/[code]` | Participant experience |
-| `/display/[code]` | Big-screen display |
-
-## Demo path
-
-Create auction → add items → Ready room → open Display → phones join → Start auction → Open bidding → compete → Close → Mark sold → Next item → Summary.
+[bidfrenzy.vercel.app](https://bidfrenzy.vercel.app)
